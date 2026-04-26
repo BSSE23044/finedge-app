@@ -1,0 +1,45 @@
+name: CI/CD Pipeline - FinEdge Bank
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Run tests
+      - name: Run tests
+        run: npm test
+
+      # Step 3: Login to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Step 4: Build and tag image with commit SHA
+      - name: Build and push Docker image
+        run: |
+          IMAGE=omeranwar/finedge-api:${{ github.sha }}
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+
+      # Step 5: Update image tag in config repo
+      - name: Update manifest in config repo
+        run: |
+          git clone https://x-access-token:${{ secrets.CONFIG_REPO_TOKEN }}@github.com/BSSE23044/finedge-config.git
+          cd finedge-config
+          sed -i "s|image: omeranwar/finedge-api:.*|image: omeranwar/finedge-api:${{ github.sha }}|" kubernetes/deployment.yaml
+          git config user.email "ci@finedge.com"
+          git config user.name "FinEdge CI Bot"
+          git add kubernetes/deployment.yaml
+          git commit -m "Update image tag to ${{ github.sha }}"
+          git push

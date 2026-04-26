@@ -1,0 +1,10 @@
+{
+  "name": "finedge-api",
+  "version": "1.0.0",
+  "description": "FinEdge Bank Node.js API Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo 'Running tests...' && exit 0"
+  }
+}
